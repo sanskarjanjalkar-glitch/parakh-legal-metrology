@@ -12,6 +12,7 @@ import { CameraModal } from './components/audit/CameraModal';
 import { UserSession, InspectionRecord, ExtractedProductFields } from './types/compliance';
 import { SAMPLE_INSPECTION_DATA } from './data/sampleProducts';
 import { evaluateLegalMetrologyRules } from './services/ruleEngine';
+import { performOcrOnImage } from './services/ocrService';
 import { saveInspectionRecord, getStoredRecords } from './services/offlineSync';
 import { INDIAN_STANDARDS_DATABASE } from './data/standardsDatabase';
 import { IndianStandard } from './types/standards';
@@ -42,7 +43,7 @@ export const App: React.FC = () => {
   });
 
   // Handle uploaded image or sample selection
-  const handleImageSelected = (
+  const handleImageSelected = async (
     dataUri: string,
     isSample = false,
     sampleRecord?: InspectionRecord
@@ -52,31 +53,9 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Realistic food product inspection based on Legal Metrology Rules, 2011 & Food Safety
-    // Detects multiple realistic non-compliances:
-    // 1. Missing mandatory Unit Sale Price under Rule 6(1)(e)
-    // 2. Illegal non-standard unit "gms" under Rule 6(1)(b)
-    // 3. Incomplete consumer care cell (missing email) under Rule 6(1)(f)
-    // 4. Incomplete postal factory address (missing 6-digit PIN code) under Rule 6(1)(a)
-    // 5. Numeral font size below 3.0mm minimum under Rule 7
-    const fields: ExtractedProductFields = {
-      manufacturerName: 'Apex Packaged Foods Ltd',
-      manufacturerAddress: 'Plot No. 44, GIDC Industrial Estate, Sector 12, Ahmedabad, Gujarat', // Missing PIN code
-      netQuantity: '1000 gms', // Illegal notation "gms"
-      netQuantityStandardUnit: false,
-      mrp: '₹ 140.00 (Inclusive of all taxes)',
-      unitSalePrice: '', // VIOLATION: Unit Sale Price omitted
-      manufactureDate: '01/2026',
-      expiryDate: '12/2026',
-      consumerCarePhone: '1800-233-5566',
-      consumerCareEmail: '', // VIOLATION: Email omitted
-      countryOfOrigin: 'India',
-      fssaiLicense: '10019011002456',
-      standardSymbol: 'VEG',
-      isiStandardMark: false,
-      barcode: '8901234567890'
-    };
-
+    // Perform dynamic OCR analysis on uploaded image or bill photo
+    const ocrResult = await performOcrOnImage(dataUri);
+    const fields = ocrResult.fields;
     const evaluation = evaluateLegalMetrologyRules(fields, 280, 1.8);
 
     const newRecord: InspectionRecord = {
@@ -84,99 +63,26 @@ export const App: React.FC = () => {
       timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
       inspectorBadgeId: user.badgeId,
       inspectorName: user.name,
-      locationName: 'Field Inspection Site / Warehouse Delivery',
-      productName: 'Packaged Food Commodity (Whole Wheat Flour / Atta 1kg)',
-      brandName: 'Apex Packaged Foods Ltd',
-      packagingType: 'Heat-Sealed Flexible Pouch (1 kg)',
+      locationName: 'Field Inspection Site / Packaging & Bill Scan',
+      productName: ocrResult.productName || 'Uploaded Packaged Commodity',
+      brandName: ocrResult.brandName || 'Scanned Brand',
+      packagingType: 'Uploaded Image / Packaging Scan',
       pdpAreaCm2: 280,
       imageUri: dataUri,
-      rawOcrText: 'Apex Packaged Foods Ltd, Plot 44 GIDC Ahmedabad. Net Qty: 1000 gms. MRP: Rs. 140.00 (incl of taxes). Mfg: 01/2026. Exp: 12/2026. Helpline: 1800-233-5566. FSSAI Lic 10019011002456.',
-      fields,
-      boundingBoxes: [
-        {
-          id: 'box-1',
-          field: 'Manufacturer Declaration',
-          label: 'Manufacturer / Packer (Rule 6(1)(a))',
-          ruleCode: 'RULE_6_1_A',
-          x: 10,
-          y: 42,
-          width: 80,
-          height: 10,
-          text: 'Apex Packaged Foods Ltd, Plot 44 GIDC Ahmedabad',
-          status: 'fail',
-          confidence: 0.92,
-          notes: 'Missing mandatory 6-digit postal PIN code'
-        },
-        {
-          id: 'box-2',
-          field: 'Net Quantity',
-          label: 'Net Quantity (Rule 6(1)(b))',
-          ruleCode: 'RULE_6_1_B',
-          x: 10,
-          y: 54,
-          width: 38,
-          height: 9,
-          text: 'Net Qty: 1000 gms',
-          status: 'fail',
-          confidence: 0.96,
-          measuredFontMm: 1.8,
-          requiredFontMm: 3.0,
-          notes: 'VIOLATION: Illegal unit expression "gms". Must declare standard SI "1 kg".'
-        },
-        {
-          id: 'box-3',
-          field: 'MRP & Unit Price',
-          label: 'MRP & Unit Sale Price (Rule 6(1)(e))',
-          ruleCode: 'RULE_6_1_E',
-          x: 52,
-          y: 54,
-          width: 38,
-          height: 9,
-          text: 'MRP: ₹ 140.00 [Unit Sale Price MISSING]',
-          status: 'fail',
-          confidence: 0.94,
-          notes: 'VIOLATION: Mandatory Unit Sale Price (₹ 14.00 per 100g) omitted!'
-        },
-        {
-          id: 'box-4',
-          field: 'Consumer Care Helpline',
-          label: 'Consumer Redressal (Rule 6(1)(f))',
-          ruleCode: 'RULE_6_1_F',
-          x: 10,
-          y: 65,
-          width: 80,
-          height: 9,
-          text: 'Helpline: 1800-233-5566 [Grievance Email MISSING]',
-          status: 'fail',
-          confidence: 0.89,
-          notes: 'VIOLATION: Rule 6(1)(f) requires both telephone AND email address'
-        },
-        {
-          id: 'box-5',
-          field: 'FSSAI & Veg Mark',
-          label: 'FSSAI License & Veg Symbol',
-          ruleCode: 'FSSAI_ACT_2006',
-          x: 10,
-          y: 76,
-          width: 80,
-          height: 8,
-          text: 'FSSAI Lic. No: 10019011002456 (100% Vegetarian)',
-          status: 'pass',
-          confidence: 0.98,
-          notes: 'Verified 14-digit FSSAI license and green vegetarian emblem'
-        }
-      ],
+      rawOcrText: ocrResult.text || 'No legible text detected on uploaded image.',
+      fields: ocrResult.fields,
+      boundingBoxes: ocrResult.boxes,
       rules: evaluation.rules,
       overallStatus: evaluation.overallStatus,
       complianceScore: evaluation.complianceScore,
-      counterfeitAnomalyScore: 68,
-      isCounterfeitRisk: true
+      counterfeitAnomalyScore: evaluation.anomalyScore,
+      isCounterfeitRisk: evaluation.anomalyScore >= 50
     };
 
     setCurrentRecord(newRecord);
     saveInspectionRecord(newRecord);
     setAuditList((prev) => [newRecord, ...prev]);
-    setIsReportModalOpen(true); // Automatically open the report modal immediately!
+    setIsReportModalOpen(true);
   };
 
   // Dynamically resolve standard for currentRecord (never hardcode!)
