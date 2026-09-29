@@ -159,25 +159,36 @@ export const UnifiedOmniHub: React.FC<Props> = ({
     setRecommendation(rec);
   };
 
-  // File Upload handler (easy for normal people)
+  // File Upload handler (easy for normal people - supports photos, bills, images & documents)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadedFileName(file.name);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setTenderText(content.slice(0, 3000));
-        const audit = auditTenderDocument(content);
-        setTenderAudit(audit);
-        const rec = recommendIndianStandards(content);
-        setRecommendation(rec);
-      }
-    };
-    reader.readAsText(file);
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif)$/i.test(file.name)) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUri = event.target?.result as string;
+        if (dataUri) {
+          onImageSelected(dataUri, false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) {
+          setTenderText(content.slice(0, 3000));
+          const audit = auditTenderDocument(content);
+          setTenderAudit(audit);
+          const rec = recommendIndianStandards(content);
+          setRecommendation(rec);
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleSelectSampleTender = (index: number) => {
@@ -389,7 +400,7 @@ export const UnifiedOmniHub: React.FC<Props> = ({
                 <label className="border-2 border-dashed border-cyan-400/80 hover:border-cyan-600 bg-cyan-50/40 hover:bg-cyan-50/80 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 group">
                   <input
                     type="file"
-                    accept=".txt,.pdf,.doc,.docx"
+                    accept=".txt,.pdf,.doc,.docx,image/*"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -398,10 +409,10 @@ export const UnifiedOmniHub: React.FC<Props> = ({
                   </div>
                   <div>
                     <div className="font-bold text-slate-900 text-sm">
-                      {uploadedFileName ? uploadedFileName : 'Click to Upload Tender Document'}
+                      {uploadedFileName ? uploadedFileName : 'Click to Upload Tender Document / Photo / Bill'}
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      Supports PDF, TXT, DOCX files
+                      Supports JPG, PNG, PDF, TXT, DOCX files
                     </div>
                   </div>
                 </label>
@@ -791,12 +802,14 @@ export const UnifiedOmniHub: React.FC<Props> = ({
 
         <button
           onClick={onOpenReportModal}
-          className="px-6 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-md shadow-cyan-600/20 flex items-center space-x-2 transition-all hover:scale-[1.02] shrink-0"
+          className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center space-x-2 transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98]"
         >
-          <Download className="w-4 h-4 text-white" />
-          <span>Download Report (PDF)</span>
+          <Printer className="w-4 h-4 text-white" />
+          <span>Generate & Print Report</span>
         </button>
       </section>
     </div>
   );
 };
+
+export default UnifiedOmniHub;
