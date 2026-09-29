@@ -1,37 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Wifi, WifiOff, Menu, X, UserCheck, RefreshCw } from 'lucide-react';
+import { Shield, Wifi, WifiOff, Menu, X, UserCheck, Sparkles, FileCheck, Download, BookOpen } from 'lucide-react';
 import { UserSession } from '../../types/compliance';
-import { getPendingSync } from '../../services/offlineSync';
+
+export type AppNavTab = 'unified' | 'tender' | 'radar' | 'rules' | 'history';
 
 interface NavbarProps {
-  activeTab: 'audit' | 'trends' | 'rules' | 'history';
-  setActiveTab: (tab: 'audit' | 'trends' | 'rules' | 'history') => void;
+  activeTab: AppNavTab;
+  setActiveTab: (tab: AppNavTab) => void;
   user: UserSession;
   onLogout: () => void;
+  onOpenReportModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   user,
-  onLogout
+  onLogout,
+  onOpenReportModal
 }) => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [pendingCount, setPendingCount] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [syncing, setSyncing] = useState<boolean>(false);
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      triggerAutoSync();
-    };
+    const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    setPendingCount(getPendingSync().length);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -39,163 +35,156 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
-  const triggerAutoSync = () => {
-    setSyncing(true);
-    setTimeout(() => {
-      setSyncing(false);
-      setPendingCount(0);
-    }, 1500);
-  };
-
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-slate-200/90 shadow-sm">
+      {/* Top National Tricolor Line */}
       <div className="h-1 w-full flex">
-        <div className="h-full w-1/3 bg-[#ff9933]"></div>
+        <div className="h-full w-1/3 bg-[#FF9933]"></div>
         <div className="h-full w-1/3 bg-white"></div>
         <div className="h-full w-1/3 bg-[#138808]"></div>
       </div>
 
-      <div className="px-4 py-1.5 bg-slate-950/80 border-b border-slate-800/60 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
+      {/* Official Government of India Top Sub-bar */}
+      <div className="px-4 py-1 bg-slate-50 border-b border-slate-200/60 text-[11px] text-slate-600 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center space-x-2">
-          <span className="font-semibold text-slate-200">Government of India</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-300">Department of Consumer Affairs</span>
-          <span className="hidden md:inline text-slate-600">|</span>
-          <span className="hidden md:inline text-amber-400 font-medium">Legal Metrology Division</span>
+          <span className="font-semibold text-slate-800">Government of India</span>
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-700">Department of Consumer Affairs (DoCA)</span>
+          <span className="hidden sm:inline text-slate-300">|</span>
+          <span className="hidden sm:inline text-cyan-700 font-semibold">Bureau of Indian Standards (BIS) & Legal Metrology</span>
         </div>
-        <div className="flex items-center space-x-3 text-[11px]">
-          <span className="hidden sm:inline bg-blue-950 text-blue-300 border border-blue-800/60 px-2 py-0.5 rounded-full font-mono">
-            SIH 2026: PS #26034
+        <div className="flex items-center space-x-2 font-mono text-[10px]">
+          <span className="bg-cyan-100/70 text-cyan-900 border border-cyan-300/60 px-2 py-0.5 rounded-full font-bold">
+            SIH 2026: PS #26108 & #26034
           </span>
-          <span className="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded-full font-mono font-semibold">
-            AFRD02 • PARAKH
+          <span className="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full font-bold">
+            PARAKH AI
           </span>
         </div>
       </div>
 
+      {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <div className="w-full h-full bg-slate-900 rounded-[7px] flex items-center justify-center">
-                <span className="text-2xl">⚖️</span>
+          {/* Brand Logo & Name */}
+          <div
+            className="flex items-center space-x-3 cursor-pointer select-none"
+            onClick={() => setActiveTab('unified')}
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 p-0.5 flex items-center justify-center shadow-md shadow-cyan-500/20">
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center font-black text-cyan-600 text-lg">
+                P
               </div>
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight text-white">PARAKH</span>
-                <span className="bg-blue-600/20 text-blue-400 border border-blue-500/30 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">
-                  AI v2.1
+                <span className="font-extrabold text-xl tracking-tight text-slate-900">PARAKH</span>
+                <span className="bg-cyan-100 text-cyan-800 border border-cyan-300 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
+                  AI v2.4
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 tracking-wide font-medium hidden sm:block">
-                Legal Metrology Rules 2011 Verification Engine
+              <p className="text-[10px] text-cyan-700 tracking-wide font-medium hidden sm:block">
+                Indian Standards (IS) & Legal Metrology Inspection Suite
               </p>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-1">
+          {/* Clean Light-Themed Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-1.5">
             <button
-              onClick={() => setActiveTab('audit')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                activeTab === 'audit'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              onClick={() => setActiveTab('unified')}
+              className={`px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
+                activeTab === 'unified'
+                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/25'
+                  : 'text-slate-600 hover:text-cyan-700 hover:bg-slate-100'
               }`}
             >
-              Field Audit
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Inspection & Tender Hub</span>
             </button>
             <button
-              onClick={() => setActiveTab('trends')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                activeTab === 'trends'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              onClick={() => setActiveTab('tender')}
+              className={`px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
+                activeTab === 'tender'
+                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/25'
+                  : 'text-slate-600 hover:text-cyan-700 hover:bg-slate-100'
               }`}
             >
-              Company Trends
+              <FileCheck className="w-3.5 h-3.5" />
+              <span>Tender Spec Auditor</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('radar')}
+              className={`px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
+                activeTab === 'radar'
+                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/25'
+                  : 'text-slate-600 hover:text-cyan-700 hover:bg-slate-100'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Manufacturer Radar</span>
             </button>
             <button
               onClick={() => setActiveTab('rules')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+              className={`px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
                 activeTab === 'rules'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/25'
+                  : 'text-slate-600 hover:text-cyan-700 hover:bg-slate-100'
               }`}
             >
-              Rules Engine
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Directory</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+              className={`px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
                 activeTab === 'history'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/25'
+                  : 'text-slate-600 hover:text-cyan-700 hover:bg-slate-100'
               }`}
             >
-              History & Log
+              <span>History</span>
             </button>
           </nav>
 
+          {/* Right Action: Download Report in Cyan + Status */}
           <div className="hidden sm:flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/80 text-xs">
-              {isOnline ? (
-                <div className="flex items-center space-x-1.5 text-emerald-400">
-                  <Wifi className="w-3.5 h-3.5" />
-                  <span className="font-mono text-[11px]">Online</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-1.5 text-amber-400">
-                  <WifiOff className="w-3.5 h-3.5 animate-pulse" />
-                  <span className="font-mono text-[11px]">Offline Cache</span>
-                </div>
-              )}
+            <button
+              onClick={onOpenReportModal}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center space-x-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>Download Report</span>
+            </button>
 
-              {pendingCount > 0 && (
-                <button
-                  onClick={triggerAutoSync}
-                  className="flex items-center space-x-1 text-blue-400 hover:text-blue-300 text-[10px] bg-blue-950/80 border border-blue-800 px-1.5 py-0.5 rounded"
-                  title="Click to sync offline audit records"
-                >
-                  <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
-                  <span>{pendingCount} Pending</span>
-                </button>
-              )}
+            <div className="flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-mono text-[11px] text-slate-700 font-semibold">Active</span>
             </div>
 
-            <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-800">
-              <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-600">
-                <UserCheck className="w-4 h-4 text-emerald-400" />
-              </div>
+            <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
               <div className="text-left hidden lg:block">
-                <div className="text-xs font-semibold text-slate-200 leading-tight">
+                <div className="text-xs font-bold text-slate-800 leading-tight">
                   {user.name}
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  {user.badgeId} ({user.role})
+                <div className="text-[10px] text-cyan-700 font-mono font-medium">
+                  {user.badgeId}
                 </div>
               </div>
+              <button
+                onClick={onLogout}
+                className="text-[11px] text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2 py-1 rounded-lg transition"
+              >
+                Role
+              </button>
             </div>
-
-            <button
-              onClick={onLogout}
-              className="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 px-2.5 py-1.5 rounded-lg transition"
-            >
-              Logout
-            </button>
           </div>
 
+          {/* Mobile menu trigger */}
           <div className="flex md:hidden items-center space-x-2">
-            <div className="flex items-center text-xs">
-              {isOnline ? (
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>
-              ) : (
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5 animate-ping"></span>
-              )}
-            </div>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white bg-slate-800"
+              className="p-2 rounded-lg bg-slate-100 text-slate-700 border border-slate-200"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -203,49 +192,52 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-4 space-y-2">
-          <div className="py-2 border-b border-slate-800 text-xs text-slate-300 flex justify-between items-center">
-            <span>Signed in as: <strong className="text-white">{user.name}</strong> ({user.badgeId})</span>
+        <div className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-1 shadow-lg">
+          <button
+            onClick={() => {
+              setActiveTab('unified');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'unified' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-700'
+            }`}
+          >
+            Inspection & Tender Hub
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('tender');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'tender' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-700'
+            }`}
+          >
+            Tender Spec Auditor
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('radar');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'radar' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-700'
+            }`}
+          >
+            Manufacturer Radar
+          </button>
+          <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
             <button
-              onClick={onLogout}
-              className="text-rose-400 text-xs px-2 py-0.5 rounded bg-rose-950 border border-rose-800"
+              onClick={onOpenReportModal}
+              className="text-cyan-700 font-bold flex items-center gap-1"
             >
-              Logout
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Report</span>
             </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              onClick={() => { setActiveTab('audit'); setMobileMenuOpen(false); }}
-              className={`p-2.5 rounded-lg text-xs font-semibold text-center ${
-                activeTab === 'audit' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              Field Audit
-            </button>
-            <button
-              onClick={() => { setActiveTab('trends'); setMobileMenuOpen(false); }}
-              className={`p-2.5 rounded-lg text-xs font-semibold text-center ${
-                activeTab === 'trends' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              Company Trends
-            </button>
-            <button
-              onClick={() => { setActiveTab('rules'); setMobileMenuOpen(false); }}
-              className={`p-2.5 rounded-lg text-xs font-semibold text-center ${
-                activeTab === 'rules' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              Rules Engine
-            </button>
-            <button
-              onClick={() => { setActiveTab('history'); setMobileMenuOpen(false); }}
-              className={`p-2.5 rounded-lg text-xs font-semibold text-center ${
-                activeTab === 'history' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              Audit History
+            <button onClick={onLogout} className="text-slate-600">
+              Switch Role
             </button>
           </div>
         </div>
