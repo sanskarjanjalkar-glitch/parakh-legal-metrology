@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Lock, User, ArrowRight, Zap } from 'lucide-react';
+import { Shield, Lock, User, ArrowRight, CheckCircle2, Zap } from 'lucide-react';
 import { UserSession, UserRole } from '../../types/compliance';
 
 interface LoginModalProps {
@@ -50,12 +50,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
       <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Modal Top Tricolor Banner */}
         <div className="h-1.5 w-full flex">
           <div className="h-full w-1/3 bg-[#ff9933]"></div>
           <div className="h-full w-1/3 bg-white"></div>
           <div className="h-full w-1/3 bg-[#138808]"></div>
         </div>
 
+        {/* Modal Header */}
         <div className="px-6 pt-6 pb-4 text-center border-b border-slate-800 bg-slate-950/50">
           <div className="inline-flex p-3 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 mb-3 shadow-inner">
             <Shield className="w-8 h-8 text-blue-500" />
@@ -73,6 +75,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
           </div>
         </div>
 
+        {/* Role Tabs (Slide 6 Replica) */}
         <div className="grid grid-cols-2 bg-slate-950 border-b border-slate-800 text-xs font-semibold">
           <button
             type="button"
@@ -100,6 +103,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
           </button>
         </div>
 
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -152,6 +156,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
             </button>
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition-all mt-2"
@@ -160,6 +165,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
             <ArrowRight className="w-4 h-4" />
           </button>
 
+          {/* Quick Demo Fill Buttons */}
           <div className="pt-3 border-t border-slate-800/80">
             <div className="text-[11px] text-slate-400 mb-2 flex items-center space-x-1">
               <Zap className="w-3 h-3 text-amber-400" />
@@ -204,6 +210,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onLoginSuccess }
           </div>
         </form>
 
+        {/* Modal Footer Note */}
         <div className="px-6 py-3 bg-slate-950 text-[10px] text-center text-slate-500 border-t border-slate-800">
           Authorized personnel only. Tampering with inspection records is punishable under Section 44 of LM Act.
         </div>
