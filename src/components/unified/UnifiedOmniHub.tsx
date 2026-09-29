@@ -206,38 +206,13 @@ export const UnifiedOmniHub: React.FC<Props> = ({
     setTimeout(() => setCopiedClause(false), 2500);
   };
 
-  // Synchronize search and tender audit when currentRecord changes (image upload or sample selection)
+  // Synchronize search and tender audit dynamically when currentRecord changes (from user image upload, scan, or sample selection)
   React.useEffect(() => {
-    const text = `${currentRecord.productName} ${currentRecord.brandName}`.toLowerCase();
-    const isFood = text.includes('atta') || text.includes('wheat') || text.includes('flour') || text.includes('food') || text.includes('surya') || text.includes('apex');
-    const isLed = text.includes('led') || text.includes('light') || text.includes('luminaire') || text.includes('street');
-    const isPipe = text.includes('pipe') || text.includes('hdpe') || text.includes('water');
-
-    if (isFood) {
-      const foodQuery = 'Wheat Atta (Whole Meal Wheat Flour 1kg) - Apex Foods';
-      setSearchQuery(foodQuery);
-      setRecommendation(recommendIndianStandards(foodQuery));
-      if (SAMPLE_TENDER_SNIPPETS[2]) {
-        setTenderAudit(SAMPLE_TENDER_SNIPPETS[2]);
-        setTenderText(SAMPLE_TENDER_SNIPPETS[2].extractedTextSnippet);
-      }
-    } else if (isLed) {
-      const ledQuery = '70W outdoor street LED luminaires with driver and surge protection';
-      setSearchQuery(ledQuery);
-      setRecommendation(recommendIndianStandards(ledQuery));
-      setTenderAudit(SAMPLE_TENDER_SNIPPETS[1]);
-      setTenderText(SAMPLE_TENDER_SNIPPETS[1].extractedTextSnippet);
-    } else if (isPipe) {
-      const pipeQuery = '110mm HDPE Pipes for Drinking Water Supply Network';
-      setSearchQuery(pipeQuery);
-      setRecommendation(recommendIndianStandards(pipeQuery));
-      setTenderAudit(SAMPLE_TENDER_SNIPPETS[0]);
-      setTenderText(SAMPLE_TENDER_SNIPPETS[0].extractedTextSnippet);
-    } else {
-      setSearchQuery(currentRecord.productName);
-      setRecommendation(recommendIndianStandards(currentRecord.productName));
-      setTenderAudit(auditTenderDocument(currentRecord.productName));
-    }
+    if (!currentRecord) return;
+    const queryText = `${currentRecord.brandName} ${currentRecord.productName}`.trim();
+    setSearchQuery(queryText);
+    setRecommendation(recommendIndianStandards(queryText));
+    setTenderAudit(auditTenderDocument(queryText));
   }, [currentRecord.id]);
 
   // Dynamically resolve standard for currentRecord
@@ -400,7 +375,7 @@ export const UnifiedOmniHub: React.FC<Props> = ({
                 <label className="border-2 border-dashed border-cyan-400/80 hover:border-cyan-600 bg-cyan-50/40 hover:bg-cyan-50/80 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 group">
                   <input
                     type="file"
-                    accept=".txt,.pdf,.doc,.docx,image/*"
+                    accept=".txt,.pdf,.doc,.docx"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -409,10 +384,10 @@ export const UnifiedOmniHub: React.FC<Props> = ({
                   </div>
                   <div>
                     <div className="font-bold text-slate-900 text-sm">
-                      {uploadedFileName ? uploadedFileName : 'Click to Upload Tender Document / Photo / Bill'}
+                      {uploadedFileName ? uploadedFileName : 'Click to Upload Tender Document'}
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      Supports JPG, PNG, PDF, TXT, DOCX files
+                      Supports PDF, TXT, DOCX files
                     </div>
                   </div>
                 </label>
@@ -802,10 +777,10 @@ export const UnifiedOmniHub: React.FC<Props> = ({
 
         <button
           onClick={onOpenReportModal}
-          className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center space-x-2 transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+          className="px-6 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-md shadow-cyan-600/20 flex items-center space-x-2 transition-all hover:scale-[1.02] shrink-0"
         >
-          <Printer className="w-4 h-4 text-white" />
-          <span>Generate & Print Report</span>
+          <Download className="w-4 h-4 text-white" />
+          <span>Download Report (PDF)</span>
         </button>
       </section>
     </div>
