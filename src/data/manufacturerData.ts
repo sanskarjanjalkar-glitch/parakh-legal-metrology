@@ -62,3 +62,5 @@ export const INITIAL_MANUFACTURERS: ManufacturerMetric[] = [
     lastInspectedDate: '2026-09-17'
   }
 ];
+
+export const MANUFACTURER_METRICS = INITIAL_MANUFACTURERS;

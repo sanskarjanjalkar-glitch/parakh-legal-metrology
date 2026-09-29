@@ -64,10 +64,10 @@ export const METROLOGY_RULES_2011: MetrologyRuleGuide[] = [
     summary: 'Prescribes the minimum numeral and letter height for net quantity and mandatory declarations depending on the area of the Principal Display Panel (PDP).',
     statutoryObligation: 'Area <= 50 cm²: min 1.0 mm (blown/moulded 2.0 mm); 50 < Area <= 100 cm²: min 1.5 mm; 100 < Area <= 500 cm²: min 2.0 mm; 500 < Area <= 1000 cm²: min 4.0 mm; Area > 1000 cm²: min 6.0 mm.',
     minimumFontSizeTable: [
-      { pdpArea: 'Area ≤ 50 cm²', minFontMm: '1.0 mm' },
-      { pdpArea: '50 cm² < Area ≤ 100 cm²', minFontMm: '1.5 mm' },
-      { pdpArea: '100 cm² < Area ≤ 500 cm²', minFontMm: '2.0 mm' },
-      { pdpArea: '500 cm² < Area ≤ 1000 cm²', minFontMm: '4.0 mm' },
+      { pdpArea: 'Area = 50 cm²', minFontMm: '1.0 mm' },
+      { pdpArea: '50 cm² < Area = 100 cm²', minFontMm: '1.5 mm' },
+      { pdpArea: '100 cm² < Area = 500 cm²', minFontMm: '2.0 mm' },
+      { pdpArea: '500 cm² < Area = 1000 cm²', minFontMm: '4.0 mm' },
       { pdpArea: 'Area > 1000 cm²', minFontMm: '6.0 mm' }
     ],
     penaltyDetails: 'Section 36(1): Fine up to ₹25,000 for undersized numerals.'
