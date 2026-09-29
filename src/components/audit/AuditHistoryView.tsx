@@ -25,6 +25,7 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 className="text-base font-bold text-white flex items-center space-x-2">
@@ -36,6 +37,7 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
           </p>
         </div>
 
+        {/* Filter buttons */}
         <div className="flex items-center space-x-1.5 overflow-x-auto">
           <button
             onClick={() => setFilter('ALL')}
@@ -72,6 +74,7 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
         </div>
       </div>
 
+      {/* Records Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>

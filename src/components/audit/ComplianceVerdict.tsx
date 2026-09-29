@@ -27,6 +27,7 @@ export const ComplianceVerdict: React.FC<ComplianceVerdictProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-4">
+      {/* Slide 6 Replica: Big Compliance Status Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -55,6 +56,7 @@ export const ComplianceVerdict: React.FC<ComplianceVerdictProps> = ({
           </div>
         </div>
 
+        {/* Action Buttons (Slide 6 Replica) */}
         <div className="flex items-center space-x-2">
           <button
             onClick={() => generateInspectionPDF(record)}
@@ -74,6 +76,7 @@ export const ComplianceVerdict: React.FC<ComplianceVerdictProps> = ({
         </div>
       </div>
 
+      {/* Statutory Infringement & Explainable PASS/FAIL Checklist */}
       <div className="space-y-2">
         <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between">
           <span className="flex items-center space-x-1.5">

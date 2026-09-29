@@ -41,6 +41,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
+      {/* Top Toolbar: Preprocessing Filters & Layers */}
       <div className="px-3 py-2 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center space-x-2">
           <Layers className="w-4 h-4 text-blue-400" />
@@ -50,6 +51,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
           </span>
         </div>
 
+        {/* OpenCV CLAHE / Denoise / Contrast Switcher (Slide 2 & 4) */}
         <div className="flex items-center space-x-1 overflow-x-auto py-0.5">
           <button
             onClick={() => handleFilterChange('normal')}
@@ -107,6 +109,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         </div>
       </div>
 
+      {/* Main Image Viewport with Bounding Boxes */}
       <div className="relative w-full aspect-[4/5] sm:aspect-[4/4.8] bg-slate-950 flex items-center justify-center p-3 overflow-hidden select-none">
         <div className="relative max-h-full max-w-full inline-block">
           <img
@@ -117,6 +120,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             className="max-h-[500px] w-auto rounded-lg shadow-2xl object-contain"
           />
 
+          {/* YOLOv8 Visual Bounding Boxes Overlay (Slide 2 & 6) */}
           {showBoxes &&
             boxes.map((box) => {
               const isSelected = selectedBoxId === box.id;
@@ -151,6 +155,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
                     isSelected ? 'ring-4 ring-blue-400 ring-offset-2 ring-offset-slate-900 z-30' : 'z-10'
                   } ${isFail ? 'animate-pulse' : ''}`}
                 >
+                  {/* Bounding Box Label Tag */}
                   <div
                     className={`absolute -top-5 left-0 px-1.5 py-0.2 text-[9px] font-bold rounded flex items-center space-x-1 shadow whitespace-nowrap pointer-events-none ${badgeColor}`}
                   >
@@ -163,6 +168,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
                     <span className="opacity-80 font-mono">({Math.round(box.confidence * 100)}%)</span>
                   </div>
 
+                  {/* Popover on Selection */}
                   {isSelected && (
                     <div className="absolute top-full left-0 mt-1 bg-slate-900 border border-slate-700 p-2.5 rounded-lg shadow-2xl text-[11px] text-slate-200 z-40 min-w-[220px] max-w-[280px]">
                       <div className="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1 mb-1">
@@ -192,6 +198,7 @@ export const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         </div>
       </div>
 
+      {/* Viewport Info Bar */}
       <div className="px-3 py-1.5 bg-slate-950 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
         <span>Click any highlighted box to inspect extracted spatial and font measurement</span>
         <div className="flex items-center space-x-3">
