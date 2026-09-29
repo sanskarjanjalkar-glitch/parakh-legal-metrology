@@ -1,11 +1,25 @@
 import { createWorker } from 'tesseract.js';
 import { ExtractedProductFields, BoundingBox } from '../types/compliance';
 
+export interface OcrWordBox {
+  text: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  confidence: number;
+}
+
 /**
  * Intelligent NLP & Regex Parser for Legal Metrology (Packaged Commodities) Rules, 2011
  * Extracts statutory fields from raw OCR transcripts with confidence scores and bounding coordinates.
  */
-export function parseOcrTranscript(text: string): {
+export function parseOcrTranscript(
+  text: string,
+  imageWidth = 800,
+  imageHeight = 600,
+  ocrWords: OcrWordBox[] = []
+): {
   fields: ExtractedProductFields;
   boxes: BoundingBox[];
   productName: string;
@@ -175,17 +189,34 @@ export function parseOcrTranscript(text: string): {
     barcode: text.match(/\b\d{12,13}\b/)?.[0] || '8901234567890'
   };
 
-  // Generate dynamic bounding boxes based on field presence
+  // Build bounding boxes mapped to real OCR word coordinates if available
+  const findWordBox = (keyword: string): { x: number; y: number; w: number; h: number } | null => {
+    if (!ocrWords.length || !imageWidth || !imageHeight) return null;
+    const match = ocrWords.find((w) => w.text.toLowerCase().includes(keyword.toLowerCase()));
+    if (!match) return null;
+    return {
+      x: Math.max(2, Math.min(90, Math.round((match.x0 / imageWidth) * 100))),
+      y: Math.max(2, Math.min(90, Math.round((match.y0 / imageHeight) * 100))),
+      w: Math.max(15, Math.min(80, Math.round(((match.x1 - match.x0) / imageWidth) * 100))),
+      h: Math.max(5, Math.min(30, Math.round(((match.y1 - match.y0) / imageHeight) * 100)))
+    };
+  };
+
+  const mfgBox = findWordBox('mfg') || findWordBox('manufactured') || { x: 8, y: 45, w: 84, h: 10 };
+  const qtyBox = findWordBox('net') || findWordBox('kg') || findWordBox('g') || { x: 10, y: 57, w: 38, h: 8 };
+  const mrpBox = findWordBox('mrp') || findWordBox('rs') || findWordBox('₹') || { x: 52, y: 57, w: 38, h: 8 };
+  const phoneBox = findWordBox('phone') || findWordBox('call') || findWordBox('tel') || { x: 10, y: 67, w: 80, h: 8 };
+
   const boxes: BoundingBox[] = [
     {
       id: 'box-auto-1',
       field: 'Manufacturer Declaration',
       label: 'Manufacturer / Packer (Rule 6(1)(a))',
       ruleCode: 'RULE_6_1_A',
-      x: 8,
-      y: 45,
-      width: 84,
-      height: 10,
+      x: mfgBox.x,
+      y: mfgBox.y,
+      width: mfgBox.w,
+      height: mfgBox.h,
       text: fields.manufacturerName || fields.manufacturerAddress ? `${fields.manufacturerName} ${fields.manufacturerAddress}`.trim() : 'Manufacturer Address Not Detected',
       status: fields.manufacturerName && fields.manufacturerAddress.length > 10 && /\b\d{6}\b/.test(fields.manufacturerAddress) ? 'pass' : 'fail',
       confidence: fields.manufacturerName ? 0.92 : 0.40,
@@ -196,10 +227,10 @@ export function parseOcrTranscript(text: string): {
       field: 'Net Quantity',
       label: 'Net Quantity (Rule 6(1)(b))',
       ruleCode: 'RULE_6_1_B',
-      x: 10,
-      y: 57,
-      width: 38,
-      height: 8,
+      x: qtyBox.x,
+      y: qtyBox.y,
+      width: qtyBox.w,
+      height: qtyBox.h,
       text: fields.netQuantity || 'Net Quantity Not Detected',
       status: fields.netQuantity && fields.netQuantityStandardUnit ? 'pass' : 'fail',
       confidence: fields.netQuantity ? 0.95 : 0.35,
@@ -210,10 +241,10 @@ export function parseOcrTranscript(text: string): {
       field: 'MRP & Unit Price',
       label: 'MRP & Unit Sale Price (Rule 6(1)(e))',
       ruleCode: 'RULE_6_1_E',
-      x: 52,
-      y: 57,
-      width: 38,
-      height: 8,
+      x: mrpBox.x,
+      y: mrpBox.y,
+      width: mrpBox.w,
+      height: mrpBox.h,
       text: fields.mrp ? (fields.unitSalePrice ? `${fields.mrp} (USP: ${fields.unitSalePrice})` : `${fields.mrp} [USP Missing]`) : 'MRP Not Detected',
       status: fields.mrp && (fields.unitSalePrice || !fields.netQuantity.toLowerCase().includes('kg')) ? 'pass' : 'fail',
       confidence: fields.mrp ? 0.93 : 0.30,
@@ -224,10 +255,10 @@ export function parseOcrTranscript(text: string): {
       field: 'Consumer Care Helpline',
       label: 'Consumer Redressal (Rule 6(1)(f))',
       ruleCode: 'RULE_6_1_F',
-      x: 10,
-      y: 67,
-      width: 80,
-      height: 8,
+      x: phoneBox.x,
+      y: phoneBox.y,
+      width: phoneBox.w,
+      height: phoneBox.h,
       text: `Phone: ${fields.consumerCarePhone || 'Not Found'} | Email: ${fields.consumerCareEmail || 'Not Found'}`,
       status: fields.consumerCarePhone && fields.consumerCareEmail ? 'pass' : 'fail',
       confidence: fields.consumerCarePhone || fields.consumerCareEmail ? 0.88 : 0.25,
@@ -249,16 +280,37 @@ export async function performOcrOnImage(imageUri: string): Promise<{
   brandName: string;
 }> {
   let rawText = '';
+  let words: OcrWordBox[] = [];
+  let imgWidth = 800;
+  let imgHeight = 600;
+
   try {
     const worker = await createWorker('eng');
     const ret = await worker.recognize(imageUri);
     rawText = ret.data.text || '';
+    const pageData = ret.data as any;
+    if (pageData && pageData.lines) {
+      pageData.lines.forEach((l: any) => {
+        if (l.words) {
+          l.words.forEach((w: any) => {
+            words.push({
+              text: w.text,
+              x0: w.bbox ? w.bbox.x0 : 0,
+              y0: w.bbox ? w.bbox.y0 : 0,
+              x1: w.bbox ? w.bbox.x1 : 0,
+              y1: w.bbox ? w.bbox.y1 : 0,
+              confidence: w.confidence || 0.9
+            });
+          });
+        }
+      });
+    }
     await worker.terminate();
   } catch (err) {
     console.warn('Tesseract OCR engine warning (proceeding with rule evaluation):', err);
   }
 
-  const result = parseOcrTranscript(rawText);
+  const result = parseOcrTranscript(rawText, imgWidth, imgHeight, words);
   return {
     text: rawText,
     fields: result.fields,
