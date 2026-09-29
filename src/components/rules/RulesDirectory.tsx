@@ -4,6 +4,7 @@ import { BookOpen, Search, Calculator, ShieldCheck, Scale } from 'lucide-react';
 
 export const RulesDirectory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  // Interactive font height calculator based on Rule 7 Table 1
   const [widthCm, setWidthCm] = useState<number>(15);
   const [heightCm, setHeightCm] = useState<number>(20);
 
@@ -24,6 +25,7 @@ export const RulesDirectory: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Top Banner */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -43,12 +45,13 @@ export const RulesDirectory: React.FC = () => {
               placeholder="Search rule (e.g. MRP, Rule 6, Font)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-72"
+              className="bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full sm:w-72"
             />
           </div>
         </div>
       </div>
 
+      {/* Rule 7 Interactive Font Size Calculator */}
       <div className="bg-gradient-to-br from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-900/40 rounded-xl p-5 shadow-xl">
         <div className="flex items-center space-x-2 text-blue-400 mb-3">
           <Calculator className="w-5 h-5" />
@@ -104,6 +107,7 @@ export const RulesDirectory: React.FC = () => {
         </div>
       </div>
 
+      {/* Rules Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredRules.map((rule) => (
           <div

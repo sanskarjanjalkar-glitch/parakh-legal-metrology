@@ -19,6 +19,7 @@ export const ManufacturerRadar: React.FC<ManufacturerRadarProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-xl space-y-4">
+      {/* Header matching Slide 6 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h3 className="text-sm font-bold text-white flex items-center space-x-2">
@@ -30,6 +31,7 @@ export const ManufacturerRadar: React.FC<ManufacturerRadarProps> = ({
           </p>
         </div>
 
+        {/* Search */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
           <input
@@ -42,6 +44,7 @@ export const ManufacturerRadar: React.FC<ManufacturerRadarProps> = ({
         </div>
       </div>
 
+      {/* Slide 6 Exact Table Reproduction */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
@@ -116,6 +119,7 @@ export const ManufacturerRadar: React.FC<ManufacturerRadarProps> = ({
         </table>
       </div>
 
+      {/* Slide 6 Exact Trend Analysis Text Box */}
       <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-1.5">
         <div className="flex items-center justify-between font-semibold text-slate-200">
           <span className="flex items-center space-x-1.5 text-blue-400">
