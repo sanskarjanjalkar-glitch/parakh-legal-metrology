@@ -1,3 +1,4 @@
+import { createWorker } from 'tesseract.js';
 import { ExtractedProductFields, BoundingBox } from '../types/compliance';
 
 /**
@@ -7,6 +8,8 @@ import { ExtractedProductFields, BoundingBox } from '../types/compliance';
 export function parseOcrTranscript(text: string): {
   fields: ExtractedProductFields;
   boxes: BoundingBox[];
+  productName: string;
+  brandName: string;
 } {
   const cleanText = text.replace(/\r?\n/g, ' ');
 
@@ -15,6 +18,11 @@ export function parseOcrTranscript(text: string): {
   const mrpMatch = text.match(/(?:mrp|max(?:imum)?\s*retail\s*price|m\.r\.p\.)\s*[:\.\-]?\s*(?:\u20B9|rs\.?|inr)?\s*([\d,]+(?:\.\d{1,2})?)/i);
   if (mrpMatch) {
     mrp = `₹ ${mrpMatch[1].replace(',', '')}`;
+  } else {
+    const rawRsMatch = text.match(/(?:\u20B9|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/i);
+    if (rawRsMatch) {
+      mrp = `₹ ${rawRsMatch[1].replace(',', '')}`;
+    }
   }
 
   // 2. Unit Sale Price (Rule 6(1)(e) Amendment)
@@ -32,21 +40,28 @@ export function parseOcrTranscript(text: string): {
     const rawVal = qtyMatch[1];
     const rawUnit = qtyMatch[2];
     netQuantity = `${rawVal} ${rawUnit}`;
-    // Legal Metrology Second Schedule strictly forbids "gms", "gm", "g.", "kg."
     if (/gms|gm|g\.|kg\./i.test(rawUnit)) {
       netQuantityStandardUnit = false;
+    }
+  } else {
+    const fallbackQty = text.match(/(\d+(?:\.\d+)?)\s*(kg|g|gms|gm|ml|l|L|mL)/i);
+    if (fallbackQty) {
+      netQuantity = `${fallbackQty[1]} ${fallbackQty[2]}`;
+      if (/gms|gm|g\.|kg\./i.test(fallbackQty[2])) {
+        netQuantityStandardUnit = false;
+      }
     }
   }
 
   // 4. Dates
   let manufactureDate = '';
-  const mfgMatch = text.match(/(?:mfg|mfd|packed|pkd|date\s*of\s*(?:packing|mfg))\s*[:\.\-]?\s*(\d{1,2}[\/\.-]\d{2,4}|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4})/i);
+  const mfgMatch = text.match(/(?:mfg|mfd|packed|pkd|date\s*of\s*(?:packing|mfg))\s*[:\.\-]?\s*(\d{1,2}[\/\.-]\d{2,4}|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{2,4})/i);
   if (mfgMatch) {
     manufactureDate = mfgMatch[1];
   }
 
   let expiryDate = '';
-  const expMatch = text.match(/(?:exp(?:iry)?|best\s*before|use\s*by)\s*[:\.\-]?\s*(\d{1,2}[\/\.-]\d{2,4}|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4}|\d+\s*months)/i);
+  const expMatch = text.match(/(?:exp(?:iry)?|best\s*before|use\s*by)\s*[:\.\-]?\s*(\d{1,2}[\/\.-]\d{2,4}|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{2,4}|\d+\s*months)/i);
   if (expMatch) {
     expiryDate = expMatch[1];
   }
@@ -59,7 +74,7 @@ export function parseOcrTranscript(text: string): {
   }
 
   let consumerCarePhone = '';
-  const phoneMatch = text.match(/(?:tel|ph|phone|toll[- ]?free|helpline|call)\s*[:\.\-]?\s*([0-9\s-]{10,14})/i);
+  const phoneMatch = text.match(/(?:tel|ph|phone|toll[- ]?free|helpline|call|care)\s*[:\.\-]?\s*([0-9\s-]{10,14})/i);
   if (phoneMatch) {
     consumerCarePhone = phoneMatch[1].trim();
   }
@@ -70,9 +85,13 @@ export function parseOcrTranscript(text: string): {
   const mfgAddMatch = text.match(/(?:manufactured|packed|marketed|mfg\s*by|pkd\s*by)\s*(?:and\s*packed)?\s*by\s*[:\.\-]?\s*([^.]+?(?:pvt|ltd|limited|foods|industries|corp|enterprises)?[^.\n]*)/i);
   if (mfgAddMatch) {
     manufacturerName = mfgAddMatch[1].slice(0, 45).trim();
-    // address snippet following
     const fullSnippet = text.slice(text.indexOf(mfgAddMatch[0]), text.indexOf(mfgAddMatch[0]) + 140);
     manufacturerAddress = fullSnippet.replace(mfgAddMatch[0], '').trim().slice(0, 80);
+  } else {
+    const companyMatch = text.match(/([A-Z][A-Za-z0-9\s&\.]{3,35}(?:Pvt|Ltd|Limited|Foods|Industries|Corp|Enterprises|Pvt\.?\s*Ltd\.?))/);
+    if (companyMatch) {
+      manufacturerName = companyMatch[1].trim();
+    }
   }
 
   // 7. Country of origin
@@ -96,25 +115,67 @@ export function parseOcrTranscript(text: string): {
   if (/non[- ]?veg/i.test(text)) standardSymbol = 'NON_VEG';
   else if (/veg|vegetarian/i.test(text)) standardSymbol = 'VEG';
 
+  // 10. Product Name & Brand Name Detection
+  let productName = 'Uploaded Packaged Commodity Scan';
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('atta') || lowerText.includes('wheat') || lowerText.includes('flour')) {
+    productName = 'Packaged Whole Wheat Flour (Atta)';
+  } else if (lowerText.includes('rice') || lowerText.includes('basmati')) {
+    productName = 'Packaged Premium Rice';
+  } else if (lowerText.includes('oil') || lowerText.includes('refined') || lowerText.includes('mustard') || lowerText.includes('sunflower')) {
+    productName = 'Packaged Edible Cooking Oil';
+  } else if (lowerText.includes('biscuit') || lowerText.includes('cookie') || lowerText.includes('rusk')) {
+    productName = 'Packaged Biscuits & Confectionery';
+  } else if (lowerText.includes('milk') || lowerText.includes('curd') || lowerText.includes('paneer') || lowerText.includes('ghee') || lowerText.includes('butter')) {
+    productName = 'Dairy Commodity (Milk/Ghee/Butter)';
+  } else if (lowerText.includes('tea') || lowerText.includes('chai') || lowerText.includes('coffee')) {
+    productName = 'Packaged Tea / Coffee';
+  } else if (lowerText.includes('soap') || lowerText.includes('shampoo') || lowerText.includes('detergent') || lowerText.includes('wash')) {
+    productName = 'Personal Care & Hygiene Product';
+  } else if (lowerText.includes('spice') || lowerText.includes('masala') || lowerText.includes('chilli') || lowerText.includes('turmeric')) {
+    productName = 'Packaged Spices & Condiments';
+  } else if (lowerText.includes('salt')) {
+    productName = 'Packaged Iodized Salt';
+  } else if (lowerText.includes('sugar')) {
+    productName = 'Packaged Sugar';
+  } else if (lowerText.includes('dal') || lowerText.includes('pulse') || lowerText.includes('chana') || lowerText.includes('rajma')) {
+    productName = 'Packaged Pulses & Food Grains';
+  } else if (lowerText.includes('juice') || lowerText.includes('drink') || lowerText.includes('beverage')) {
+    productName = 'Packaged Beverage / Fruit Juice';
+  } else if (lowerText.includes('water')) {
+    productName = 'Packaged Drinking Water';
+  } else if (lowerText.includes('noodle') || lowerText.includes('pasta')) {
+    productName = 'Instant Noodles & Pasta';
+  } else if (lowerText.includes('bill') || lowerText.includes('invoice') || lowerText.includes('tax invoice') || lowerText.includes('cash memo') || lowerText.includes('total') || lowerText.includes('gstin')) {
+    productName = 'Retail Tax Invoice / Bill Receipt';
+  } else {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 2 && l.length < 50);
+    if (lines.length > 0) {
+      productName = lines[0];
+    }
+  }
+
+  const brandName = manufacturerName || (text.split(/\r?\n/)[0]?.slice(0, 30)) || 'Scanned Product Brand';
+
   const fields: ExtractedProductFields = {
-    manufacturerName: manufacturerName || 'Apex Packaged Foods Ltd',
-    manufacturerAddress: manufacturerAddress || 'Sector 62, Industrial Area, Phase II',
-    netQuantity: netQuantity || '500 g',
+    manufacturerName,
+    manufacturerAddress,
+    netQuantity,
     netQuantityStandardUnit,
-    mrp: mrp || '₹ 120.00',
-    unitSalePrice: unitSalePrice || '',
-    manufactureDate: manufactureDate || '03/2026',
-    expiryDate: expiryDate || '03/2027',
-    consumerCarePhone: consumerCarePhone || '1800-11-4000',
+    mrp,
+    unitSalePrice,
+    manufactureDate,
+    expiryDate,
+    consumerCarePhone,
     consumerCareEmail,
     countryOfOrigin: countryOfOrigin || 'India',
-    fssaiLicense: fssaiLicense || '10019011002233',
+    fssaiLicense,
     standardSymbol,
     isiStandardMark: /isi/i.test(text),
-    barcode: '8901234567890'
+    barcode: text.match(/\b\d{12,13}\b/)?.[0] || '8901234567890'
   };
 
-  // Generate synthetic bounding boxes aligned with typical packaging PDP layout
+  // Generate dynamic bounding boxes based on field presence
   const boxes: BoundingBox[] = [
     {
       id: 'box-auto-1',
@@ -122,13 +183,13 @@ export function parseOcrTranscript(text: string): {
       label: 'Manufacturer / Packer (Rule 6(1)(a))',
       ruleCode: 'RULE_6_1_A',
       x: 8,
-      y: 48,
+      y: 45,
       width: 84,
-      height: 8,
-      text: `${fields.manufacturerName} ${fields.manufacturerAddress}`,
-      status: fields.manufacturerAddress.length > 10 ? 'pass' : 'fail',
-      confidence: 0.94,
-      notes: fields.manufacturerAddress.length > 10 ? 'Complete postal address verified' : 'Incomplete factory address detected'
+      height: 10,
+      text: fields.manufacturerName || fields.manufacturerAddress ? `${fields.manufacturerName} ${fields.manufacturerAddress}`.trim() : 'Manufacturer Address Not Detected',
+      status: fields.manufacturerName && fields.manufacturerAddress.length > 10 && /\b\d{6}\b/.test(fields.manufacturerAddress) ? 'pass' : 'fail',
+      confidence: fields.manufacturerName ? 0.92 : 0.40,
+      notes: fields.manufacturerName ? 'Manufacturer declaration verified' : 'Violation: Manufacturer physical address missing or incomplete'
     },
     {
       id: 'box-auto-2',
@@ -136,15 +197,13 @@ export function parseOcrTranscript(text: string): {
       label: 'Net Quantity (Rule 6(1)(b))',
       ruleCode: 'RULE_6_1_B',
       x: 10,
-      y: 58,
+      y: 57,
       width: 38,
-      height: 7,
-      text: fields.netQuantity,
-      status: fields.netQuantityStandardUnit ? 'pass' : 'fail',
-      confidence: 0.97,
-      measuredFontMm: 2.8,
-      requiredFontMm: 2.0,
-      notes: fields.netQuantityStandardUnit ? 'Standard SI unit verified' : 'Illegal non-standard unit notation detected'
+      height: 8,
+      text: fields.netQuantity || 'Net Quantity Not Detected',
+      status: fields.netQuantity && fields.netQuantityStandardUnit ? 'pass' : 'fail',
+      confidence: fields.netQuantity ? 0.95 : 0.35,
+      notes: fields.netQuantity ? (fields.netQuantityStandardUnit ? 'Standard SI metric unit verified' : 'Illegal non-standard unit notation detected') : 'Violation: Mandatory net quantity declaration missing'
     },
     {
       id: 'box-auto-3',
@@ -152,13 +211,13 @@ export function parseOcrTranscript(text: string): {
       label: 'MRP & Unit Sale Price (Rule 6(1)(e))',
       ruleCode: 'RULE_6_1_E',
       x: 52,
-      y: 58,
+      y: 57,
       width: 38,
-      height: 7,
-      text: fields.unitSalePrice ? `${fields.mrp} (USP: ${fields.unitSalePrice})` : `${fields.mrp} [Missing USP]`,
-      status: fields.unitSalePrice ? 'pass' : 'fail',
-      confidence: 0.93,
-      notes: fields.unitSalePrice ? 'Complies with 2022 amendment' : 'Violation: Unit sale price omitted'
+      height: 8,
+      text: fields.mrp ? (fields.unitSalePrice ? `${fields.mrp} (USP: ${fields.unitSalePrice})` : `${fields.mrp} [USP Missing]`) : 'MRP Not Detected',
+      status: fields.mrp && (fields.unitSalePrice || !fields.netQuantity.toLowerCase().includes('kg')) ? 'pass' : 'fail',
+      confidence: fields.mrp ? 0.93 : 0.30,
+      notes: fields.mrp ? 'MRP declaration detected' : 'Violation: Mandatory MRP not found on scanned image'
     },
     {
       id: 'box-auto-4',
@@ -166,15 +225,45 @@ export function parseOcrTranscript(text: string): {
       label: 'Consumer Redressal (Rule 6(1)(f))',
       ruleCode: 'RULE_6_1_F',
       x: 10,
-      y: 68,
+      y: 67,
       width: 80,
       height: 8,
-      text: `Phone: ${fields.consumerCarePhone || 'N/A'} | Email: ${fields.consumerCareEmail || 'N/A'}`,
-      status: fields.consumerCareEmail && fields.consumerCarePhone ? 'pass' : 'fail',
-      confidence: 0.91,
-      notes: fields.consumerCareEmail ? 'Email and phone verified' : 'Non-compliant: Missing consumer grievance email'
+      text: `Phone: ${fields.consumerCarePhone || 'Not Found'} | Email: ${fields.consumerCareEmail || 'Not Found'}`,
+      status: fields.consumerCarePhone && fields.consumerCareEmail ? 'pass' : 'fail',
+      confidence: fields.consumerCarePhone || fields.consumerCareEmail ? 0.88 : 0.25,
+      notes: fields.consumerCarePhone && fields.consumerCareEmail ? 'Complete redressal contact verified' : 'Violation: Missing mandatory consumer care telephone/email'
     }
   ];
 
-  return { fields, boxes };
+  return { fields, boxes, productName, brandName };
+}
+
+/**
+ * Execute Client-side Tesseract.js OCR on an uploaded image URI.
+ */
+export async function performOcrOnImage(imageUri: string): Promise<{
+  text: string;
+  fields: ExtractedProductFields;
+  boxes: BoundingBox[];
+  productName: string;
+  brandName: string;
+}> {
+  let rawText = '';
+  try {
+    const worker = await createWorker('eng');
+    const ret = await worker.recognize(imageUri);
+    rawText = ret.data.text || '';
+    await worker.terminate();
+  } catch (err) {
+    console.warn('Tesseract OCR engine warning (proceeding with rule evaluation):', err);
+  }
+
+  const result = parseOcrTranscript(rawText);
+  return {
+    text: rawText,
+    fields: result.fields,
+    boxes: result.boxes,
+    productName: result.productName,
+    brandName: result.brandName
+  };
 }
