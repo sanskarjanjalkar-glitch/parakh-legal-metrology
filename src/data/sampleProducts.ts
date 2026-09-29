@@ -1,5 +1,6 @@
 import { InspectionRecord } from '../types/compliance';
 
+// Utility to create a rich SVG label data URI for standalone offline-first demo
 export function createSvgLabel(
   title: string,
   brand: string,
@@ -19,38 +20,47 @@ export function createSvgLabel(
     </defs>
     <rect width="600" height="780" rx="20" fill="url(#grad)" stroke="#334155" stroke-width="4"/>
     
+    <!-- Top Brand Header -->
     <rect x="30" y="30" width="540" height="90" rx="10" fill="#1e3a8a"/>
     <text x="300" y="70" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">${brand.toUpperCase()}</text>
     <text x="300" y="100" font-family="Arial, sans-serif" font-size="16" fill="#93c5fd" text-anchor="middle">${title}</text>
     
+    <!-- Product Center Artwork/Frame -->
     <rect x="40" y="140" width="520" height="180" rx="12" fill="#020617" stroke="#1e293b" stroke-width="2"/>
     <circle cx="300" cy="220" r="45" fill="#3b82f6" fill-opacity="0.2"/>
     <text x="300" y="232" font-family="Arial, sans-serif" font-size="34" text-anchor="middle">🌾</text>
     <text x="300" y="290" font-family="Arial, sans-serif" font-size="14" fill="#64748b" text-anchor="middle">AUTHENTIC PACKAGED COMMODITY</text>
     
+    <!-- Mandatory Principal Display Panel (PDP) Section -->
     <rect x="40" y="340" width="520" height="390" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
     <rect x="50" y="350" width="500" height="28" fill="#1e293b"/>
     <text x="60" y="369" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#38bdf8">LEGAL METROLOGY MANDATORY DECLARATIONS (RULE 6)</text>
     
+    <!-- Field 1: Manufacturer -->
     <text x="60" y="405" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94a3b8">MANUFACTURED & PACKED BY:</text>
     <text x="60" y="425" font-family="Arial, sans-serif" font-size="13" fill="#f8fafc">${mfg}</text>
     
+    <!-- Field 2: Net Quantity -->
     <rect x="60" y="445" width="230" height="55" rx="6" fill="#1e293b" stroke="#475569"/>
     <text x="75" y="468" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">NET QUANTITY / Wt:</text>
     <text x="75" y="490" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#38bdf8">${netQty}</text>
     
+    <!-- Field 3: MRP -->
     <rect x="310" y="445" width="230" height="55" rx="6" fill="#1e293b" stroke="#475569"/>
     <text x="325" y="468" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">MAX RETAIL PRICE:</text>
     <text x="325" y="490" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#f59e0b">${mrp}</text>
     
+    <!-- Field 4: Extra Details / Consumer Care / Dates -->
     <text x="60" y="530" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#94a3b8">CONSUMER CARE & COMPLIANCE:</text>
     <text x="60" y="550" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">${extra}</text>
     
+    <!-- Standard Symbols: Veg Mark & FSSAI -->
     <rect x="60" y="660" width="30" height="30" rx="3" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
     <circle cx="75" cy="675" r="7" fill="#16a34a"/>
     <text x="100" y="675" font-family="Arial, sans-serif" font-size="11" fill="#cbd5e1">100% Vegetarian</text>
     <text x="100" y="690" font-family="Arial, sans-serif" font-size="11" fill="#94a3b8">FSSAI Lic. No. 10021011000342</text>
     
+    <!-- Barcode simulation -->
     <rect x="420" y="655" width="120" height="42" fill="#ffffff"/>
     <line x1="430" y1="660" x2="430" y2="690" stroke="#000" stroke-width="2"/>
     <line x1="435" y1="660" x2="435" y2="690" stroke="#000" stroke-width="3"/>
@@ -66,6 +76,7 @@ export function createSvgLabel(
     <line x1="525" y1="660" x2="525" y2="690" stroke="#000" stroke-width="1"/>
     <text x="475" y="705" font-family="Courier, monospace" font-size="10" fill="#000000" text-anchor="middle">8901030894218</text>
     
+    <!-- AI Scan Tag -->
     <rect x="420" y="45" width="135" height="24" rx="12" fill="${badgeColor}"/>
     <text x="487" y="61" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff" text-anchor="middle">AI AUDIT READY</text>
   </svg>`;
@@ -98,11 +109,11 @@ export const SAMPLE_INSPECTION_DATA: InspectionRecord[] = [
       netQuantity: '1 kg',
       netQuantityStandardUnit: true,
       mrp: '₹ 162.00',
-      unitSalePrice: '',
+      unitSalePrice: '', // VIOLATION: Missing unit sale price for 1kg
       manufactureDate: '04/2026',
       expiryDate: '03/2028',
       consumerCarePhone: '',
-      consumerCareEmail: '',
+      consumerCareEmail: '', // VIOLATION: Only web link given, email missing
       countryOfOrigin: 'India',
       fssaiLicense: '10021011000342',
       standardSymbol: 'VEG',
@@ -429,15 +440,15 @@ export const SAMPLE_INSPECTION_DATA: InspectionRecord[] = [
     fields: {
       manufacturerName: 'Apex Foods Ltd',
       manufacturerAddress: 'Plot 44, GIDC Industrial Estate, Gujarat',
-      netQuantity: '200 GMS.',
+      netQuantity: '200 GMS.', // Non-compliant unit
       netQuantityStandardUnit: false,
       mrp: '₹ 45.00',
       unitSalePrice: '',
       manufactureDate: '06/2026',
       expiryDate: '12/2026',
       consumerCarePhone: '9876543210',
-      consumerCareEmail: '',
-      countryOfOrigin: '',
+      consumerCareEmail: '', // Missing
+      countryOfOrigin: '', // Missing
       fssaiLicense: '10019999000111',
       standardSymbol: 'VEG',
       isiStandardMark: false,
