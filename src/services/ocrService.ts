@@ -1,23 +1,30 @@
 import { ExtractedProductFields, BoundingBox } from '../types/compliance';
 
+/**
+ * Intelligent NLP & Regex Parser for Legal Metrology (Packaged Commodities) Rules, 2011
+ * Extracts statutory fields from raw OCR transcripts with confidence scores and bounding coordinates.
+ */
 export function parseOcrTranscript(text: string): {
   fields: ExtractedProductFields;
   boxes: BoundingBox[];
 } {
   const cleanText = text.replace(/\r?\n/g, ' ');
 
+  // 1. MRP Extraction
   let mrp = '';
   const mrpMatch = text.match(/(?:mrp|max(?:imum)?\s*retail\s*price|m\.r\.p\.)\s*[:\.\-]?\s*(?:\u20B9|rs\.?|inr)?\s*([\d,]+(?:\.\d{1,2})?)/i);
   if (mrpMatch) {
     mrp = `₹ ${mrpMatch[1].replace(',', '')}`;
   }
 
+  // 2. Unit Sale Price (Rule 6(1)(e) Amendment)
   let unitSalePrice = '';
   const uspMatch = text.match(/(?:unit\s*sale\s*price|usp|unit\s*price)\s*[:\.\-]?\s*(?:\u20B9|rs\.?|inr)?\s*([\d\.]+\s*(?:\/|per)\s*(?:g|gm|kg|ml|l|piece|unit))/i);
   if (uspMatch) {
     unitSalePrice = uspMatch[1];
   }
 
+  // 3. Net Quantity & Standard Unit Check
   let netQuantity = '';
   let netQuantityStandardUnit = true;
   const qtyMatch = text.match(/(?:net\s*(?:quantity|qty|weight|wt|vol|volume|content))\s*[:\.\-]?\s*(\d+(?:\.\d+)?)\s*(kg|g|gms|gm|ml|l|L|mL|pieces|nos|g\.|kg\.)/i);
@@ -25,11 +32,13 @@ export function parseOcrTranscript(text: string): {
     const rawVal = qtyMatch[1];
     const rawUnit = qtyMatch[2];
     netQuantity = `${rawVal} ${rawUnit}`;
+    // Legal Metrology Second Schedule strictly forbids "gms", "gm", "g.", "kg."
     if (/gms|gm|g\.|kg\./i.test(rawUnit)) {
       netQuantityStandardUnit = false;
     }
   }
 
+  // 4. Dates
   let manufactureDate = '';
   const mfgMatch = text.match(/(?:mfg|mfd|packed|pkd|date\s*of\s*(?:packing|mfg))\s*[:\.\-]?\s*(\d{1,2}[\/\.-]\d{2,4}|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4})/i);
   if (mfgMatch) {
@@ -42,6 +51,7 @@ export function parseOcrTranscript(text: string): {
     expiryDate = expMatch[1];
   }
 
+  // 5. Consumer Care Email & Phone
   let consumerCareEmail = '';
   const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i);
   if (emailMatch) {
@@ -54,15 +64,18 @@ export function parseOcrTranscript(text: string): {
     consumerCarePhone = phoneMatch[1].trim();
   }
 
+  // 6. Manufacturer & Address
   let manufacturerName = '';
   let manufacturerAddress = '';
   const mfgAddMatch = text.match(/(?:manufactured|packed|marketed|mfg\s*by|pkd\s*by)\s*(?:and\s*packed)?\s*by\s*[:\.\-]?\s*([^.]+?(?:pvt|ltd|limited|foods|industries|corp|enterprises)?[^.\n]*)/i);
   if (mfgAddMatch) {
     manufacturerName = mfgAddMatch[1].slice(0, 45).trim();
+    // address snippet following
     const fullSnippet = text.slice(text.indexOf(mfgAddMatch[0]), text.indexOf(mfgAddMatch[0]) + 140);
     manufacturerAddress = fullSnippet.replace(mfgAddMatch[0], '').trim().slice(0, 80);
   }
 
+  // 7. Country of origin
   let countryOfOrigin = '';
   if (/india|made in india|product of india/i.test(text)) {
     countryOfOrigin = 'India';
@@ -71,12 +84,14 @@ export function parseOcrTranscript(text: string): {
     if (originMatch) countryOfOrigin = originMatch[1].trim();
   }
 
+  // 8. FSSAI License Number (14 digits)
   let fssaiLicense = '';
   const fssaiMatch = text.match(/(?:fssai|lic(?:\.|\s*no)?)\s*[:\.\-]?\s*([0-9]{14})/i);
   if (fssaiMatch) {
     fssaiLicense = fssaiMatch[1];
   }
 
+  // 9. Standard symbol (Veg / Non-veg)
   let standardSymbol: 'VEG' | 'NON_VEG' | 'NOT_APPLICABLE' | 'MISSING' = 'VEG';
   if (/non[- ]?veg/i.test(text)) standardSymbol = 'NON_VEG';
   else if (/veg|vegetarian/i.test(text)) standardSymbol = 'VEG';
@@ -99,6 +114,7 @@ export function parseOcrTranscript(text: string): {
     barcode: '8901234567890'
   };
 
+  // Generate synthetic bounding boxes aligned with typical packaging PDP layout
   const boxes: BoundingBox[] = [
     {
       id: 'box-auto-1',

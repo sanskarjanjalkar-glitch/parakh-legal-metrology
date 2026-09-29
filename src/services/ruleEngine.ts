@@ -15,25 +15,30 @@ export function evaluateLegalMetrologyRules(
   let passedCount = 0;
   let totalMandatory = 0;
 
+  // 1. Rule 6(1)(a): Manufacturer / Packer Name & Postal Address
   totalMandatory++;
-  const hasValidAddress = fields.manufacturerAddress && fields.manufacturerAddress.length >= 12;
-  const mfgPass = Boolean(fields.manufacturerName && hasValidAddress);
+  const hasValidAddress = Boolean(fields.manufacturerAddress && fields.manufacturerAddress.length >= 12);
+  const hasPinCode = /\b\d{6}\b/.test(fields.manufacturerAddress || '');
+  const mfgPass = Boolean(fields.manufacturerName && hasValidAddress && hasPinCode);
   if (mfgPass) passedCount++;
   evaluations.push({
     ruleCode: 'RULE_6_1_A',
     ruleName: 'Manufacturer / Packer Declaration',
     actReference: 'Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(a)',
-    description: 'Name and complete physical street address of manufacturer or packer',
+    description: 'Name and complete physical street address with 6-digit postal PIN code',
     mandatory: true,
     status: mfgPass ? 'PASS' : 'FAIL',
     extractedValue: `${fields.manufacturerName || 'N/A'}, ${fields.manufacturerAddress || 'N/A'}`,
-    expectedCondition: 'Registered business name + Physical facility address',
+    expectedCondition: 'Registered business name + Physical address with 6-digit PIN code',
     explanation: mfgPass
-      ? 'Verified full manufacturer identity and address.'
-      : 'Non-compliant: Incomplete or missing physical factory address. Violates Section 36(1).',
+      ? 'Verified full manufacturer identity, physical facility, and postal PIN code.'
+      : !hasPinCode
+        ? 'Violation: Incomplete address. Rule 6(1)(a) mandates physical address with 6-digit postal PIN code.'
+        : 'Non-compliant: Incomplete or missing physical factory address. Violates Section 36(1).',
     penaltySection: mfgPass ? undefined : 'Sec 36(1) Legal Metrology Act, 2009 (Fine up to ₹25,000)'
   });
 
+  // 2. Rule 6(1)(b): Net Quantity Standard Units
   totalMandatory++;
   const qtyPass = Boolean(fields.netQuantity && fields.netQuantityStandardUnit);
   if (qtyPass) passedCount++;
@@ -52,6 +57,7 @@ export function evaluateLegalMetrologyRules(
     penaltySection: qtyPass ? undefined : 'Sec 36(1) & Sec 30 Legal Metrology Act, 2009'
   });
 
+  // 3. Rule 6(1)(c) & (d): Month, Year & Expiry
   totalMandatory++;
   const datePass = Boolean(fields.manufactureDate);
   if (datePass) passedCount++;
@@ -70,12 +76,15 @@ export function evaluateLegalMetrologyRules(
     penaltySection: datePass ? undefined : 'Sec 36(1) Legal Metrology Act, 2009'
   });
 
+  // 4. Rule 6(1)(e): MRP & Unit Sale Price
   totalMandatory++;
+  // Parse net quantity numeric
   const numericQty = parseFloat(fields.netQuantity) || 0;
   const isLargePack = fields.netQuantity.toLowerCase().includes('kg') || 
                       fields.netQuantity.toLowerCase().includes('l') || 
                       numericQty >= 1000;
   
+  // Under 2022 amendment, Unit Sale Price is mandatory if quantity > 1kg/1L
   const uspPass = !isLargePack || Boolean(fields.unitSalePrice && fields.unitSalePrice.trim().length > 0);
   const mrpPass = Boolean(fields.mrp && uspPass);
   if (mrpPass) passedCount++;
@@ -99,6 +108,7 @@ export function evaluateLegalMetrologyRules(
     penaltySection: mrpPass ? undefined : 'Sec 36(2) Legal Metrology Act, 2009 (Fine up to ₹50,000)'
   });
 
+  // 5. Rule 6(1)(f): Consumer Care Redressal
   totalMandatory++;
   const hasPhone = Boolean(fields.consumerCarePhone && fields.consumerCarePhone.trim().length > 6);
   const hasEmail = Boolean(fields.consumerCareEmail && fields.consumerCareEmail.includes('@'));
@@ -123,6 +133,7 @@ export function evaluateLegalMetrologyRules(
     penaltySection: carePass ? undefined : 'Sec 36(1) Legal Metrology Act, 2009'
   });
 
+  // 6. Rule 7: Minimum Font Size for Principal Display Panel
   totalMandatory++;
   let requiredMinFont = 2.0;
   if (pdpAreaCm2 <= 50) requiredMinFont = 1.0;
@@ -148,6 +159,7 @@ export function evaluateLegalMetrologyRules(
     penaltySection: fontPass ? undefined : 'Sec 36(1) Legal Metrology Act, 2009'
   });
 
+  // 7. Rule 6(10): Country of Origin
   const originPass = Boolean(fields.countryOfOrigin && fields.countryOfOrigin.trim().length > 1);
   evaluations.push({
     ruleCode: 'RULE_6_10',
@@ -164,8 +176,10 @@ export function evaluateLegalMetrologyRules(
     penaltySection: originPass ? undefined : 'Statutory warning under Section 36'
   });
 
+  // Compute final scores
   const complianceScore = Math.round((passedCount / totalMandatory) * 100);
   
+  // Anomaly & Counterfeit heuristic (Slide 2 & 5)
   let anomalyScore = 10;
   if (!fields.manufacturerAddress || fields.manufacturerAddress.length < 15) anomalyScore += 35;
   if (!fields.fssaiLicense || fields.fssaiLicense.length !== 14) anomalyScore += 25;

@@ -11,14 +11,16 @@ export function generateInspectionPDF(record: InspectionRecord): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 14;
 
-  doc.setFillColor(11, 30, 54);
+  // 1. Top Header & Government Seal Banner
+  doc.setFillColor(11, 30, 54); // Deep Navy
   doc.rect(0, 0, pageWidth, 28, 'F');
 
-  doc.setFillColor(255, 153, 51);
+  // Tricolor accent line
+  doc.setFillColor(255, 153, 51); // Saffron
   doc.rect(0, 28, pageWidth, 1.5, 'F');
-  doc.setFillColor(255, 255, 255);
+  doc.setFillColor(255, 255, 255); // White
   doc.rect(0, 29.5, pageWidth, 1, 'F');
-  doc.setFillColor(19, 136, 8);
+  doc.setFillColor(19, 136, 8); // Green
   doc.rect(0, 30.5, pageWidth, 1.5, 'F');
 
   doc.setTextColor(255, 255, 255);
@@ -33,6 +35,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y = 40;
 
+  // 2. Report Title & Panchnama Notice
   doc.setTextColor(11, 30, 54);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -45,6 +48,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y += 12;
 
+  // 3. Metadata Table
   doc.setDrawColor(203, 213, 225);
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(12, y, pageWidth - 24, 28, 2, 2, 'FD');
@@ -53,6 +57,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 41, 59);
 
+  // Column 1
   doc.text('Inspection ID:', 16, y + 6);
   doc.setFont('helvetica', 'normal');
   doc.text(record.id, 45, y + 6);
@@ -67,6 +72,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
   doc.setFont('helvetica', 'normal');
   doc.text(record.locationName.slice(0, 36), 45, y + 18);
 
+  // Column 2
   doc.setFont('helvetica', 'bold');
   doc.text('Inspecting Officer:', 115, y + 6);
   doc.setFont('helvetica', 'normal');
@@ -84,6 +90,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y += 34;
 
+  // 4. Product Details
   doc.setFillColor(241, 245, 249);
   doc.rect(12, y, pageWidth - 24, 6.5, 'F');
   doc.setFont('helvetica', 'bold');
@@ -96,13 +103,17 @@ export function generateInspectionPDF(record: InspectionRecord): void {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(51, 65, 85);
 
-  doc.text(`Product: ${record.productName}`, 16, y);
-  doc.text(`Brand / Manufacturer: ${record.brandName} - ${record.fields.manufacturerName}`, 16, y + 5);
-  doc.text(`Declared Net Qty: ${record.fields.netQuantity} | Declared MRP: ${record.fields.mrp} (USP: ${record.fields.unitSalePrice || 'None'})`, 16, y + 10);
+  const cleanMrp = (record.fields.mrp || 'N/A').replace(/\u20B9/g, 'Rs. ');
+  const cleanUsp = record.fields.unitSalePrice ? record.fields.unitSalePrice.replace(/\u20B9/g, 'Rs. ') : 'None';
+
+  doc.text(`Product: ${(record.productName || 'Packaged Commodity').slice(0, 60)}`, 16, y);
+  doc.text(`Brand / Manufacturer: ${(record.brandName || '')} - ${(record.fields.manufacturerName || 'N/A')}`.slice(0, 75), 16, y + 5);
+  doc.text(`Declared Net Qty: ${record.fields.netQuantity || 'N/A'} | Declared MRP: ${cleanMrp} (USP: ${cleanUsp})`, 16, y + 10);
   doc.text(`Batch / Expiry: ${record.fields.expiryDate || 'N/A'} | FSSAI Lic: ${record.fields.fssaiLicense || 'N/A'}`, 16, y + 15);
 
   y += 22;
 
+  // 5. Compliance Verdict Banner
   const isPass = record.overallStatus === 'COMPLIANT_PASS';
   const isCounterfeit = record.overallStatus === 'COUNTERFEIT_FLAGGED';
 
@@ -143,6 +154,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y += 20;
 
+  // 6. Infringement Details Table
   doc.setFillColor(15, 23, 42);
   doc.rect(12, y, pageWidth - 24, 6, 'F');
   doc.setTextColor(255, 255, 255);
@@ -168,10 +180,11 @@ export function generateInspectionPDF(record: InspectionRecord): void {
     doc.text(rule.ruleCode, 16, y + 5);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(rule.ruleName.slice(0, 38), 45, y + 5);
+    doc.text((rule.ruleName || '').slice(0, 38), 45, y + 5);
 
     doc.setTextColor(71, 85, 105);
-    doc.text(rule.extractedValue.slice(0, 30), 120, y + 5);
+    const cleanExtracted = (rule.extractedValue || 'N/A').replace(/\u20B9/g, 'Rs. ');
+    doc.text(cleanExtracted.slice(0, 30), 120, y + 5);
 
     if (rule.status === 'PASS') {
       doc.setTextColor(22, 163, 74);
@@ -188,6 +201,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y += 6;
 
+  // 7. Statutory Action / Compounding Notice
   doc.setFillColor(255, 251, 235);
   doc.setDrawColor(245, 158, 11);
   doc.roundedRect(12, y, pageWidth - 24, 20, 1.5, 1.5, 'FD');
@@ -205,6 +219,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
 
   y += 28;
 
+  // 8. Signature & Attestation
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
@@ -219,6 +234,7 @@ export function generateInspectionPDF(record: InspectionRecord): void {
   doc.setFontSize(7);
   doc.text(`SHA256:${record.id.replace(/-/g, '')}9b27ac8`, 110, y + 4.5);
 
+  // Download trigger
   const filename = `PARAKH-Inspection-Report-${record.id}.pdf`;
   doc.save(filename);
 }
